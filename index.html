@@ -78,6 +78,8 @@
       margin: 20px auto 10px;
     }
     .link-info {
+        /* Hiding this block completely as it contains the sensitive formURL */
+        display: none; 
         font-size: 0.8em;
         color: #777;
         margin-top: 15px;
@@ -120,7 +122,8 @@
       <button id="passwordSubmit">Login</button>
     </div>
 
-    <div class="link-info">
+    <!-- Hiding the Target Form link display to protect the URL -->
+    <div class="link-info" id="link-info-container">
         <p>Target Form: <span id="form-link-display">...</span></p>
     </div>
 
@@ -239,7 +242,8 @@
       const urlParams = new URLSearchParams(window.location.search);
       formURL = urlParams.get("form");
       
-      formLinkDisplayEl.textContent = formURL || "N/A";
+      // Removed the code that sets formLinkDisplayEl.textContent = formURL, 
+      // but keeping formURL in memory for redirection.
 
       if (!formURL) {
         document.body.innerHTML = "<div class='container'><h2>Error</h2><p>No target form link ('?form=...') was provided in the URL.</p></div>";
