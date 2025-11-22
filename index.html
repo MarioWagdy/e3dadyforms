@@ -1,11 +1,14 @@
 <!DOCTYPE html>
+
 <html>
 <head>
   <meta charset="UTF-8" />
   <title>Secure Redirect</title>
 
   <!-- Google Identity Services -->
+
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
 
   <script>
@@ -14,7 +17,7 @@
     // ----------------------
     const allowedEmails = [
       "mariowagdy2013@gmail.com",
-      "mariomedhat241097@gmail.com",
+      "teacher2@gmail.com",
       "teacher3@hotmail.com"
     ];
 
@@ -26,6 +29,7 @@
     // START AUTH FLOW
     // ----------------------
     function start() {
+      // Get form link from URL parameter ?form=...
       const urlParams = new URLSearchParams(window.location.search);
       formURL = urlParams.get("form");
 
@@ -34,14 +38,24 @@
         return;
       }
 
+      // Check if a valid user is already stored in localStorage
+      const storedEmail = localStorage.getItem("trustedTeacher");
+      if (storedEmail && allowedEmails.includes(storedEmail)) {
+        // Redirect immediately without asking
+        window.location.href = formURL;
+        return;
+      }
+
+      // Reset any previous One Tap dismissal
+      google.accounts.id.cancel();
+
+      // Initialize Google Sign-In
       google.accounts.id.initialize({
         client_id: "427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com",
-        callback: handleCredentialResponse,
-        auto_select: false, // disable automatic sign-in
-        ux_mode: "popup"    // force popup to select account
+        callback: handleCredentialResponse
       });
 
-      // Explicitly show the One Tap / popup login
+      // Show Google One Tap prompt
       google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           showPasswordPrompt();
@@ -58,6 +72,8 @@
         const userEmail = data.email;
 
         if (allowedEmails.includes(userEmail)) {
+          // Save the trusted email for future visits
+          localStorage.setItem("trustedTeacher", userEmail);
           window.location.href = formURL;
         } else {
           showPasswordPrompt();
@@ -74,12 +90,15 @@
       const pwd = prompt("Enter access password:");
 
       if (pwd === fallbackPassword) {
+        // Save a special flag so they don’t have to sign in again
+        localStorage.setItem("trustedTeacher", "passwordAccess");
         window.location.href = formURL;
       } else {
         alert("Access Denied");
       }
     }
   </script>
+
 </head>
 
 <body onload="start()">
