@@ -4,36 +4,43 @@
   <meta charset="UTF-8" />
   <title>Secure Redirect</title>
 
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
+
   <script>
-    // ✔ Add trusted teacher emails here
     const allowedEmails = [
       "mariowagdy2013@gmail.com",
       "teacher2@gmail.com",
       "teacher3@hotmail.com"
     ];
 
-    // ✔ Add your fallback password here
     const fallbackPassword = "123456";
 
-    async function start() {
+    let formURL = null; // Make accessible globally
+
+    function start() {
       // Get form link from URL parameter ?form=...
       const urlParams = new URLSearchParams(window.location.search);
-      const formURL = urlParams.get("form");
+      formURL = urlParams.get("form");
 
       if (!formURL) {
         document.body.innerHTML = "<h2>No form link provided!</h2>";
         return;
       }
 
-      // Try to get Google account email automatically
-      try {
-        const token = await google.accounts.id.initialize({
-          client_id: "427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com",
-          callback: handleCredentialResponse,
-        });
-      } catch (e) {
-        showPasswordPrompt(formURL);
-      }
+      // Initialize Google Sign-In
+      google.accounts.id.initialize({
+        client_id: "427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com",
+        callback: handleCredentialResponse
+      });
+
+      // Display the One Tap prompt
+      google.accounts.id.prompt((notification) => {
+        // If user closes prompt or fails, fallback to password
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          showPasswordPrompt();
+        }
+      });
     }
 
     function handleCredentialResponse(response) {
@@ -44,14 +51,14 @@
         if (allowedEmails.includes(userEmail)) {
           window.location.href = formURL;
         } else {
-          showPasswordPrompt(formURL);
+          showPasswordPrompt();
         }
       } catch (e) {
-        showPasswordPrompt(formURL);
+        showPasswordPrompt();
       }
     }
 
-    function showPasswordPrompt(formURL) {
+    function showPasswordPrompt() {
       const pwd = prompt("Enter access password:");
 
       if (pwd === fallbackPassword) {
@@ -61,15 +68,9 @@
       }
     }
   </script>
-
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
-
 </head>
 
 <body onload="start()">
   <h2 style="text-align:center;">Authenticating…</h2>
 </body>
 </html>
-
-
