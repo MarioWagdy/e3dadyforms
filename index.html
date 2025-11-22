@@ -29,7 +29,6 @@
     // START AUTH FLOW
     // ----------------------
     function start() {
-      // Get form link from URL parameter ?form=...
       const urlParams = new URLSearchParams(window.location.search);
       formURL = urlParams.get("form");
 
@@ -38,16 +37,12 @@
         return;
       }
 
-      // Check if a valid user is already stored in localStorage
-      const storedEmail = localStorage.getItem("trustedTeacher");
-      if (storedEmail && allowedEmails.includes(storedEmail)) {
-        // Redirect immediately without asking
+      // Check if a trusted user is stored
+      const trusted = localStorage.getItem("trustedTeacher");
+      if (trusted && (allowedEmails.includes(trusted) || trusted === "passwordAccess")) {
         window.location.href = formURL;
         return;
       }
-
-      // Reset any previous One Tap dismissal
-      google.accounts.id.cancel();
 
       // Initialize Google Sign-In
       google.accounts.id.initialize({
@@ -55,7 +50,7 @@
         callback: handleCredentialResponse
       });
 
-      // Show Google One Tap prompt
+      // Show Google One Tap
       google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           showPasswordPrompt();
@@ -72,7 +67,7 @@
         const userEmail = data.email;
 
         if (allowedEmails.includes(userEmail)) {
-          // Save the trusted email for future visits
+          // Save for future visits
           localStorage.setItem("trustedTeacher", userEmail);
           window.location.href = formURL;
         } else {
@@ -90,7 +85,7 @@
       const pwd = prompt("Enter access password:");
 
       if (pwd === fallbackPassword) {
-        // Save a special flag so they don’t have to sign in again
+        // Save flag so password users are trusted
         localStorage.setItem("trustedTeacher", "passwordAccess");
         window.location.href = formURL;
       } else {
