@@ -17,14 +17,12 @@
     // ----------------------
     const allowedEmails = [
       "mariowagdy2013@gmail.com",
-      "mariomedhat241097@gmail.com",
+      "teacher2@gmail.com",
       "teacher3@hotmail.com"
     ];
 
     const fallbackPassword = "123456";
 
-    // Sample Google Form URL (encoded in query parameter)
-    // Replace this later with dynamic ?form= links for each student
     let formURL = null;
 
     // ----------------------
@@ -39,6 +37,9 @@
         document.body.innerHTML = "<h2>No form link provided!</h2>";
         return;
       }
+
+      // Reset any previous One Tap dismissal
+      google.accounts.id.cancel();
 
       // Initialize Google Sign-In
       google.accounts.id.initialize({
@@ -93,4 +94,3 @@
   <h2 style="text-align:center;">Authenticating…</h2>
 </body>
 </html>
-
