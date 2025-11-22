@@ -1,13 +1,20 @@
 <!DOCTYPE html>
+
 <html>
 <head>
   <meta charset="UTF-8" />
   <title>Secure Redirect</title>
 
+  <!-- Google Identity Services -->
+
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
 
   <script>
+    // ----------------------
+    // CONFIGURATION
+    // ----------------------
     const allowedEmails = [
       "mariowagdy2013@gmail.com",
       "teacher2@gmail.com",
@@ -16,8 +23,13 @@
 
     const fallbackPassword = "123456";
 
-    let formURL = null; // Make accessible globally
+    // Sample Google Form URL (encoded in query parameter)
+    // Replace this later with dynamic ?form= links for each student
+    let formURL = null;
 
+    // ----------------------
+    // START AUTH FLOW
+    // ----------------------
     function start() {
       // Get form link from URL parameter ?form=...
       const urlParams = new URLSearchParams(window.location.search);
@@ -34,15 +46,18 @@
         callback: handleCredentialResponse
       });
 
-      // Display the One Tap prompt
+      // Show Google One Tap prompt
       google.accounts.id.prompt((notification) => {
-        // If user closes prompt or fails, fallback to password
+        // If One Tap not displayed or skipped, fallback to password
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           showPasswordPrompt();
         }
       });
     }
 
+    // ----------------------
+    // HANDLE GOOGLE RESPONSE
+    // ----------------------
     function handleCredentialResponse(response) {
       try {
         const data = jwt_decode(response.credential);
@@ -58,6 +73,9 @@
       }
     }
 
+    // ----------------------
+    // FALLBACK PASSWORD
+    // ----------------------
     function showPasswordPrompt() {
       const pwd = prompt("Enter access password:");
 
@@ -68,6 +86,7 @@
       }
     }
   </script>
+
 </head>
 
 <body onload="start()">
