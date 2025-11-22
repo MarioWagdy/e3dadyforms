@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-
 <html>
 <head>
   <meta charset="UTF-8" />
   <title>Secure Redirect</title>
 
   <!-- Google Identity Services -->
-
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
 
   <script>
@@ -17,7 +14,7 @@
     // ----------------------
     const allowedEmails = [
       "mariowagdy2013@gmail.com",
-      "teacher2@gmail.com",
+      "mariomedhat241097@gmail.com",
       "teacher3@hotmail.com"
     ];
 
@@ -29,7 +26,6 @@
     // START AUTH FLOW
     // ----------------------
     function start() {
-      // Get form link from URL parameter ?form=...
       const urlParams = new URLSearchParams(window.location.search);
       formURL = urlParams.get("form");
 
@@ -38,18 +34,15 @@
         return;
       }
 
-      // Reset any previous One Tap dismissal
-      google.accounts.id.cancel();
-
-      // Initialize Google Sign-In
       google.accounts.id.initialize({
         client_id: "427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com",
-        callback: handleCredentialResponse
+        callback: handleCredentialResponse,
+        auto_select: false, // disable automatic sign-in
+        ux_mode: "popup"    // force popup to select account
       });
 
-      // Show Google One Tap prompt
+      // Explicitly show the One Tap / popup login
       google.accounts.id.prompt((notification) => {
-        // If One Tap not displayed or skipped, fallback to password
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           showPasswordPrompt();
         }
@@ -87,7 +80,6 @@
       }
     }
   </script>
-
 </head>
 
 <body onload="start()">
