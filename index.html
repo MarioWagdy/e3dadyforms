@@ -1,15 +1,130 @@
 <!DOCTYPE html>
-
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Secure Redirect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure Access Gateway</title>
 
   <!-- Google Identity Services -->
-
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 {
+      color: #1877f2;
+      margin-bottom: 20px;
+    }
+    #statusMessage {
+      font-size: 1.1em;
+      margin-bottom: 20px;
+      color: #4a4a4a;
+    }
+    .error {
+      color: #fa383e;
+      background-color: #ffebe9;
+      border: 1px solid #fa383e;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    /* Password Form Styling */
+    #password-login {
+      padding: 20px 0;
+      border-top: 1px solid #ddd;
+      margin-top: 20px;
+      display: none; /* Initially hidden */
+    }
+    #passwordInput {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    #passwordSubmit {
+      width: 100%;
+      padding: 10px;
+      background-color: #42b72a;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #passwordSubmit:hover {
+      background-color: #36a420;
+    }
+    .g_id_signin {
+      margin: 20px auto 10px;
+    }
+    .link-info {
+        font-size: 0.8em;
+        color: #777;
+        margin-top: 15px;
+        word-wrap: break-word;
+    }
+  </style>
+</head>
+
+<body onload="start()">
+  <div class="container">
+    <h2>Secure Gateway</h2>
+    <div id="statusMessage">Checking access...</div>
+    <div id="errorMessage" class="error" style="display:none;"></div>
+    
+    <!-- Google One Tap / Button Container -->
+    <div id="google-auth-container" style="display:none;">
+      <p style="margin-top: 0;">Sign in to continue:</p>
+      <!-- The Google One Tap will use this container -->
+      <div id="g_id_onload"
+           data-client_id="427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com"
+           data-callback="handleCredentialResponse"
+           data-auto_prompt="true">
+      </div>
+      <!-- Google Sign-In Button (Fallback for full screen) -->
+      <div class="g_id_signin"
+           data-type="standard"
+           data-size="large"
+           data-theme="outline"
+           data-text="sign_in_with"
+           data-shape="rectangular"
+           data-logo_alignment="left">
+      </div>
+      <p style="margin: 15px 0 0;">OR</p>
+    </div>
+
+    <!-- Fallback Password Login -->
+    <div id="password-login">
+      <p>Enter Access Password:</p>
+      <input type="password" id="passwordInput" placeholder="Password" />
+      <button id="passwordSubmit">Login</button>
+    </div>
+
+    <div class="link-info">
+        <p>Target Form: <span id="form-link-display">...</span></p>
+    </div>
+
+  </div>
 
   <script>
     // ----------------------
@@ -20,83 +135,144 @@
       "teacher2@gmail.com",
       "teacher3@hotmail.com"
     ];
-
     const fallbackPassword = "123456";
-
+    const CLIENT_ID = "427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com";
     let formURL = null;
+    let isPromptingPassword = false;
+
+    // DOM Elements
+    const statusEl = document.getElementById('statusMessage');
+    const errorEl = document.getElementById('errorMessage');
+    const googleAuthContainerEl = document.getElementById('google-auth-container');
+    const passwordLoginEl = document.getElementById('password-login');
+    const passwordInputEl = document.getElementById('passwordInput');
+    const passwordSubmitEl = document.getElementById('passwordSubmit');
+    const formLinkDisplayEl = document.getElementById('form-link-display');
 
     // ----------------------
-    // START AUTH FLOW
+    // REDIRECT AND FAILURE HANDLERS
     // ----------------------
-    function start() {
-      const urlParams = new URLSearchParams(window.location.search);
-      formURL = urlParams.get("form");
 
-      if (!formURL) {
-        document.body.innerHTML = "<h2>No form link provided!</h2>";
-        return;
-      }
-
-      // Check if a trusted user is stored
-      const trusted = localStorage.getItem("trustedTeacher");
-      if (trusted && (allowedEmails.includes(trusted) || trusted === "passwordAccess")) {
-        window.location.href = formURL;
-        return;
-      }
-
-      // Initialize Google Sign-In
-      google.accounts.id.initialize({
-        client_id: "427630977928-151dd7ia0joijtta69bntnbkkp7bp0s9.apps.googleusercontent.com",
-        callback: handleCredentialResponse
-      });
-
-      // Show Google One Tap
-      google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          showPasswordPrompt();
-        }
-      });
+    function redirectToForm() {
+        statusEl.textContent = "Access Granted. Redirecting...";
+        // Save flag for password users, or email for Google users (already saved by Google handler)
+        // We use window.location.replace to prevent the back button from going back to the login page.
+        window.location.replace(formURL);
+    }
+    
+    function showFinalDenied() {
+        statusEl.style.color = '#fa383e';
+        statusEl.textContent = "Access Denied.";
+        errorEl.textContent = "You must sign in with an authorized account or provide the correct access password. Please refresh to try again.";
+        errorEl.style.display = 'block';
+        googleAuthContainerEl.style.display = 'none';
+        passwordLoginEl.style.display = 'none';
     }
 
     // ----------------------
     // HANDLE GOOGLE RESPONSE
     // ----------------------
-    function handleCredentialResponse(response) {
+    window.handleCredentialResponse = function(response) {
+      googleAuthContainerEl.style.display = 'none';
       try {
+        // We need the jwt_decode script from CDN
         const data = jwt_decode(response.credential);
         const userEmail = data.email;
 
         if (allowedEmails.includes(userEmail)) {
-          // Save for future visits
+          // 1. SUCCESS: Google Auth
           localStorage.setItem("trustedTeacher", userEmail);
-          window.location.href = formURL;
+          redirectToForm();
         } else {
-          showPasswordPrompt();
+          // 2. FAIL: Email not in allowed list
+          showPasswordPrompt("Email " + userEmail + " is not authorized.");
         }
       } catch (e) {
-        showPasswordPrompt();
+        // 3. FAIL: Decode error or Google API error
+        console.error("Google Auth Error:", e);
+        showPasswordPrompt("Authentication failed. Please use password.");
       }
     }
 
     // ----------------------
     // FALLBACK PASSWORD
     // ----------------------
-    function showPasswordPrompt() {
-      const pwd = prompt("Enter access password:");
-
-      if (pwd === fallbackPassword) {
-        // Save flag so password users are trusted
-        localStorage.setItem("trustedTeacher", "passwordAccess");
-        window.location.href = formURL;
-      } else {
-        alert("Access Denied");
+    function showPasswordPrompt(message) {
+      if (isPromptingPassword) return; // Prevent multiple prompts
+      isPromptingPassword = true;
+      statusEl.textContent = "Manual Access Required.";
+      googleAuthContainerEl.style.display = 'none';
+      passwordLoginEl.style.display = 'block';
+      
+      if (message) {
+          errorEl.textContent = message;
+          errorEl.style.display = 'block';
       }
+
+      passwordInputEl.focus();
+    }
+
+    passwordSubmitEl.addEventListener('click', () => {
+        const pwd = passwordInputEl.value;
+        errorEl.style.display = 'none';
+
+        if (pwd === fallbackPassword) {
+            // 1. SUCCESS: Password
+            localStorage.setItem("trustedTeacher", "passwordAccess");
+            redirectToForm();
+        } else {
+            // 2. FAIL: Incorrect Password
+            errorEl.textContent = "Incorrect password. Access denied.";
+            errorEl.style.display = 'block';
+            passwordInputEl.value = '';
+            
+            // Crucial: Stop the authentication flow after a failure and show final message
+            // Wait briefly before showing final denial to prevent UI flicker
+            setTimeout(showFinalDenied, 1500); 
+        }
+    });
+
+    // ----------------------
+    // INITIALIZATION
+    // ----------------------
+    window.start = function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      formURL = urlParams.get("form");
+      
+      formLinkDisplayEl.textContent = formURL || "N/A";
+
+      if (!formURL) {
+        document.body.innerHTML = "<div class='container'><h2>Error</h2><p>No target form link ('?form=...') was provided in the URL.</p></div>";
+        return;
+      }
+
+      // 1. Check if a trusted user is stored (PERSISTENCE CHECK)
+      const trusted = localStorage.getItem("trustedTeacher");
+      if (trusted && (allowedEmails.includes(trusted) || trusted === "passwordAccess")) {
+        statusEl.textContent = "Welcome back! Redirecting...";
+        redirectToForm();
+        return;
+      }
+
+      // 2. NO PERSISTENCE: Initiate Google One Tap
+      statusEl.textContent = "Please sign in with your Google account...";
+      googleAuthContainerEl.style.display = 'block';
+      
+      // Initialize Google Sign-In (already done via declarative HTML elements g_id_onload/g_id_signin)
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleCredentialResponse
+      });
+
+      // Show Google One Tap (if conditions allow)
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // If One Tap doesn't show or is skipped, immediately fall back to the password form
+          showPasswordPrompt("Google sign-in was skipped or not available. Please use the password.");
+        }
+        // If One Tap is displayed, we do nothing; the callback handles success/failure.
+      });
     }
   </script>
-
-</head>
-
-<body onload="start()">
-  <h2 style="text-align:center;">Authenticating…</h2>
 </body>
 </html>
